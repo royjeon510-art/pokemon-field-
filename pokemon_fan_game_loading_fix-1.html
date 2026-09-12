@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Pokémon Field Game Prototype</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:system-ui,sans-serif;background:#101318;color:#fff}
+button{font:inherit;font-weight:800;border:0;cursor:pointer}
+#app{position:fixed;inset:0;background:#25372b}
+#camera{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#263b2d}
+#shade{position:absolute;inset:0;pointer-events:none;background:linear-gradient(#0008,transparent 27%,transparent 70%,#0009)}
+#gate{position:absolute;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:linear-gradient(#17251df0,#253b2df0);padding:22px}
+.gateCard{width:min(380px,92vw);padding:28px 22px;border-radius:26px;background:#fff;color:#151515;text-align:center;box-shadow:0 20px 60px #0008}
+.gateCard h1{margin:0 0 8px}.gateCard p{color:#555;line-height:1.5}.primary{padding:14px 22px;border-radius:15px;background:#e53935;color:#fff}
+#cameraError{margin-top:12px;color:#c62828;font-size:12px}
+#top{position:absolute;top:0;left:0;right:0;z-index:20;padding:10px;display:flex;gap:7px;background:linear-gradient(#000c,transparent)}
+.menu{flex:1;padding:10px 6px;border-radius:13px;background:#ffffffe8;color:#111}.locked{opacity:.55}
+#status{position:absolute;left:10px;bottom:10px;z-index:20;background:#000b;border-radius:11px;padding:7px 10px;font-size:12px}
+#pokemon{position:absolute;left:50%;top:47%;transform:translate(-50%,-50%);z-index:15;text-align:center;display:none;touch-action:none}
+#wildModel{width:190px;height:190px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 12px 7px #0009)}
+#wildModel svg{width:190px;height:190px}
+#ring{position:absolute;left:50%;top:50%;width:135px;height:135px;transform:translate(-50%,-50%);border:4px solid #63df73;border-radius:50%;pointer-events:none}
+#ring:after{content:"";position:absolute;inset:31px;border:3px solid #fff;border-radius:50%;opacity:.8}
+#pokemonName{font-weight:900;text-shadow:0 2px 5px #000}.small{font-size:12px}
+#pokeball{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);width:82px;height:82px;border-radius:50%;z-index:25;touch-action:none;background:linear-gradient(#ef3030 0 46%,#151515 46% 54%,#f7f7f7 54%);border:5px solid #111;box-shadow:0 7px 20px #000b}
+#pokeball:before{content:"";position:absolute;width:27px;height:27px;border-radius:50%;background:#fff;border:5px solid #222;left:50%;top:50%;transform:translate(-50%,-50%)}
+#pokeball:after{content:"";position:absolute;width:10px;height:10px;border-radius:50%;background:#fff;left:50%;top:50%;transform:translate(-50%,-50%)}
+#msg{position:absolute;left:50%;top:25%;transform:translateX(-50%);z-index:30;display:none;background:#000d;border-radius:18px;padding:12px 18px;font-weight:900;white-space:nowrap}
+#raid{position:absolute;right:12px;bottom:112px;z-index:24;display:none;padding:12px 14px;border-radius:14px;background:#7629e8;color:#fff}
+#panel{position:absolute;inset:0;z-index:60;display:none;background:#f4f4f4;color:#111;overflow:auto}
+#panelHead{position:sticky;top:0;z-index:3;background:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 9px #0002}
+#panelHead h2{margin:0}.close{padding:9px 12px;border-radius:12px;background:#222;color:#fff}
+#party{padding:15px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.card{background:#fff;border-radius:20px;padding:10px;box-shadow:0 3px 12px #0002}.modelBox{height:175px;border-radius:16px;background:linear-gradient(#d9ebff,#fafafa);display:flex;align-items:center;justify-content:center}.modelBox svg{width:150px;height:150px;filter:drop-shadow(0 7px 4px #0004)}.info{padding:8px 3px}.lvl{float:right;background:#222;color:#fff;border-radius:9px;padding:4px 7px;font-size:12px}
+#effects{padding:15px;display:none}.effect{background:#fff;border-radius:18px;margin:10px 0;padding:14px;box-shadow:0 2px 9px #0002}.effect b{display:block;font-size:17px}.effect button{margin-top:9px;padding:9px 12px;border-radius:10px;background:#222;color:#fff}.effect button:disabled{opacity:.45}
+
+#loading{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 38%,#2f5a42,#101d16 72%);color:#fff;text-align:center;transition:opacity .6s ease,visibility .6s ease}
+#loading.hide{opacity:0;visibility:hidden;pointer-events:none}
+.loadBox{width:min(390px,90vw);padding:28px 22px}
+.gameLogo{font-size:clamp(30px,9vw,52px);font-weight:1000;letter-spacing:-2px;text-shadow:0 4px 0 #111,0 8px 18px #0008;margin-bottom:10px}
+.gameLogo span{display:block;font-size:12px;letter-spacing:5px;color:#9ee7b2;text-shadow:none;margin-top:5px}
+.fan{font-size:15px;font-weight:900;letter-spacing:2px;margin-top:22px}.notice{font-size:12px;color:#d7e3da;margin-top:8px}
+.loadTrack{height:8px;border-radius:99px;background:#ffffff22;overflow:hidden;margin:25px 15px 10px}.loadBar{height:100%;width:0;background:#fff;border-radius:99px;transition:width .15s linear}.loadText{font-size:11px;color:#b9c9bf}
+</style>
+</head>
+<body>
+<div id="app">
+<div id="loading">
+ <div class="loadBox">
+  <div class="gameLogo">POKÉMON FIELD<span>ADVENTURE WEB GAME</span></div>
+  <div class="fan">FAN GAME</div>
+  <div class="notice">수익 창출을 하지 않습니다.</div>
+  <div class="loadTrack"><div class="loadBar" id="loadBar"></div></div>
+  <div class="loadText" id="loadText">게임 준비 중...</div>
+ </div>
+</div>
+
+<video id="camera" autoplay playsinline muted></video><div id="shade"></div>
+
+<div id="gate"><div class="gateCard">
+<h1>📷 카메라 필드</h1><p>카메라를 허용하면 실제 주변 화면에서 포켓몬을 찾아볼 수 있습니다.</p>
+<button class="primary" id="cameraBtn" onclick="startCamera()">카메라 허용</button>
+<div id="cameraError"></div><div style="margin-top:8px;font-size:11px;color:#777">※ 다운로드한 HTML 파일(content://)에서는 카메라가 차단될 수 있습니다. HTTPS 웹주소에서 실행하세요.</div>
+</div></div>
+
+<div id="top">
+<button class="menu" onclick="openPokemon()">🐾 포켓몬</button>
+<button class="menu" onclick="openEffects()">✨ 모험 효과</button>
+<button class="menu locked" onclick="alert('배틀은 해금 조건 달성 후 사용할 수 있습니다.')">⚔️ 배틀 🔒</button>
+</div>
+
+<div id="pokemon">
+<div id="ring"></div><div id="wildModel"></div>
+<div id="pokemonName">피카츄</div><div class="small">중앙을 노려보세요</div>
+</div>
+
+<div id="msg"></div>
+<button id="raid" onclick="enterRaid()">👑 레이드 발견!</button>
+<button id="pokeball" aria-label="몬스터볼"></button>
+<div id="status">카메라를 허용해 주세요.</div>
+
+<div id="panel">
+<div id="panelHead"><h2 id="panelTitle">🐾 내 포켓몬</h2><button class="close" onclick="closePanel()">닫기</button></div>
+<div id="party"></div><div id="effects"></div>
+</div>
+</div>
+
+<script>
+const camera=document.getElementById('camera'),gate=document.getElementById('gate'),statusEl=document.getElementById('status');
+const pokemon=document.getElementById('pokemon'),ball=document.getElementById('pokeball'),msg=document.getElementById('msg');
+const party=[
+{name:'피카츄',level:32,model:'pikachu'},{name:'파이리',level:18,model:'charmander'},
+{name:'꼬부기',level:25,model:'squirtle'},{name:'이브이',level:41,model:'eevee'}
+];
+const effects=[
+['테라파고스','테라클러스터','1시간 · 주변 Tera Raid 3개 생성 · 테라스탈 0 에너지'],
+['자시안','거수참','30분 · 레이드에서 같은 편 기술 데미지 ×2'],
+['자마젠타','거수탄','30분 · 강한 포켓몬에게 받는 데미지 50% 감소'],
+['네크로즈마(새벽의 날개)','섀도레이','30분 · 밤 판정 · 코스모움→루나아라 · 암멍이→밤의 루가루암'],
+['네크로즈마(황혼의 갈기)','메테오드라이브','30분 · 낮 판정 · 낮 진화 조건 적용'],
+['블랙큐레무','프리즈볼트','20분 · 현재 레이드 보스 빙결 · 매 턴 작은 전기 피해'],
+['화이트큐레무','콜드플레어','20분 · 현재 레이드 보스 빙결 · 매 턴 작은 불꽃 피해'],
+['오리진 디아루가','시간의포효','1시간 · 일반 소모품 무제한 사용 · 희귀 아이템 제외'],
+['오리진 펄기아','공간절단','1시간 · 10분마다 파트너 진화 전 포켓몬 소환 · 최대 6회'],
+['원시그란돈','단애의칼+','30분 · 강한 햇빛 · 레이드 불꽃 기술 ×3'],
+['원시가이오가','근원의파동+','30분 · 폭우 · 레이드 물 기술 ×3'],
+['메가레쿠쟈','델타스트림','1시간 · 아군 능력치 하락 방지 · 약점 삭제 · 비행 기술 ×1.5'],
+['메가뮤츠 X','폭발펀치+','1시간 · 폭주 메가 레이드 실드 무한 파괴 · 기술 데미지 ×1.5'],
+['메가뮤츠 Y','미래예지+','1시간 · 보스 공격 3초 전 표시 · Lv.30+ 금빛 표시'],
+['메가 지가르데','니힐레이져+','24시간 · 50 셀 소비 · 5일 후 반환 · Lv.100 미만 메가진화 허용']
+];
+let cameraOK=false,dragging=false,sx=0,sy=0;
+
+function model(type){
+ const c={pikachu:'#f3c92f',charmander:'#ef7847',squirtle:'#64a9df',eevee:'#a8754d'}[type]||'#aaa';
+ return `<svg viewBox="0 0 180 180"><ellipse cx="90" cy="154" rx="42" ry="9" fill="#0004"/>
+ <circle cx="90" cy="92" r="48" fill="${c}" stroke="#333" stroke-width="4"/>
+ <path d="M58 62Q43 25 70 43L90 58 110 43Q137 25 122 62" fill="${c}" stroke="#333" stroke-width="4"/>
+ <circle cx="73" cy="87" r="6" fill="#111"/><circle cx="107" cy="87" r="6" fill="#111"/>
+ <circle cx="65" cy="105" r="7" fill="#e96767"/><circle cx="115" cy="105" r="7" fill="#e96767"/>
+ <path d="M77 113Q90 121 103 113" fill="none" stroke="#333" stroke-width="4" stroke-linecap="round"/></svg>`;
+}
+function finishLoading(){
+ const loading=document.getElementById('loading'),bar=document.getElementById('loadBar'),text=document.getElementById('loadText');
+ let p=0; const timer=setInterval(()=>{p+=Math.floor(Math.random()*12)+5;if(p>=100){p=100;clearInterval(timer);text.textContent='준비 완료!';setTimeout(()=>loading.classList.add('hide'),350);}else text.textContent=p<40?'게임 파일 확인 중...':p<75?'필드 준비 중...':'카메라 필드 준비 중...';bar.style.width=p+'%';},90);
+}
+window.addEventListener('load',()=>setTimeout(finishLoading,250));
+async function startCamera(){
+ const err=document.getElementById('cameraError'),btn=document.getElementById('cameraBtn');
+ err.textContent='';btn.disabled=true;btn.textContent='카메라 확인 중...';
+ if(!window.isSecureContext){err.textContent='현재 주소는 HTTPS가 아닙니다. 다운로드 화면(content://)에서는 카메라를 사용할 수 없습니다. GitHub Pages 같은 HTTPS 주소에 올린 뒤 접속하세요.';btn.disabled=false;btn.textContent='카메라 허용';return}
+ try{
+  const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
+  camera.srcObject=stream;camera.muted=true;await camera.play();camera.style.display='block';gate.style.display='none';cameraOK=true;
+  statusEl.textContent='필드를 탐색 중...';setTimeout(spawnWild,1000);
+ }catch(e){err.textContent=(e.name==='NotAllowedError'?'카메라 권한을 허용해주세요.':e.name==='NotFoundError'?'카메라를 찾지 못했습니다.':'카메라를 시작하지 못했습니다.')+' ['+e.name+']';btn.disabled=false;btn.textContent='카메라 허용';}
+}
+function spawnWild(){if(!cameraOK)return;document.getElementById('wildModel').innerHTML=model('pikachu');pokemon.style.display='block';statusEl.textContent='야생 피카츄가 나타났다!';}
+ball.addEventListener('pointerdown',e=>{dragging=true;sx=e.clientX;sy=e.clientY;ball.setPointerCapture(e.pointerId)});
+ball.addEventListener('pointerup',e=>{
+ if(!dragging)return;dragging=false;
+ if(sy-e.clientY<55){statusEl.textContent='몬스터볼을 위쪽으로 크게 스와이프!';return}
+ if(pokemon.style.display==='none'){statusEl.textContent='주변에 포켓몬이 없습니다.';return}
+ const r=pokemon.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,d=Math.hypot(e.clientX-cx,e.clientY-cy),m=Math.max(r.width,r.height)/2;
+ let grade='NICE',rate=.45;if(d<m*.25){grade='EXCELLENT';rate=.85}else if(d<m*.48){grade='GREAT';rate=.65}
+ msg.textContent=grade+(Math.random()<rate?' · 포획 성공!':' · 포획 실패');msg.style.display='block';setTimeout(()=>msg.style.display='none',1100);
+ if(msg.textContent.includes('성공')){party.push({name:'피카츄',level:12,model:'pikachu'});pokemon.style.display='none';statusEl.textContent=grade+'! 피카츄를 포획했습니다.'}else statusEl.textContent=grade+'! 포켓몬이 빠져나왔습니다.';
+});
+function openPokemon(){document.getElementById('panelTitle').textContent='🐾 내 포켓몬';document.getElementById('party').style.display='grid';document.getElementById('effects').style.display='none';document.getElementById('party').innerHTML=party.map(p=>`<div class="card"><div class="modelBox">${model(p.model)}</div><div class="info"><b>${p.name}</b><span class="lvl">Lv.${p.level}</span></div></div>`).join('');document.getElementById('panel').style.display='block'}
+function openEffects(){document.getElementById('panelTitle').textContent='✨ 모험 효과';document.getElementById('party').style.display='none';document.getElementById('effects').style.display='block';document.getElementById('effects').innerHTML=effects.map((e,i)=>`<div class="effect"><b>${e[0]} 「${e[1]}」</b><div>${e[2]}</div><button onclick="useEffect(${i})">사용</button></div>`).join('');document.getElementById('panel').style.display='block'}
+function useEffect(i){alert(effects[i][1]+' 발동!\\n하루에 모험 효과는 한 종류만 사용할 수 있습니다.')}
+function closePanel(){document.getElementById('panel').style.display='none'}
+function enterRaid(){alert('레이드 입장 준비\\n최대 5명 + 부족한 인원은 AI 서포트 트레이너\\n보스 Lv.100');}
+setTimeout(()=>document.getElementById('raid').style.display='block',15000);
+</script>
+</body>
+</html>
